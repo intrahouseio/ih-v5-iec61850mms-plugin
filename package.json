@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@amigo9090/ih-libiec61850-node": "^1.0.73"
+  }
+}

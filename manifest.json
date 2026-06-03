@@ -1,0 +1,52 @@
+{
+  "name": "iec61850mms",
+  "description": "Client IEC 61850 mms",
+
+  "single": 0,
+  "innerId": 1,
+  "hasTryStartState":1,
+  "linkChstatus":1,
+
+  "share_node_folder_fields":["dataMode", "rcbRef", "dataSetRef", "polldelay"],
+
+  "channel_popup": {
+    "add": [
+      { "id": "channel_folder", "title": "$NewFolder" },
+      { "id": "channel_node_folder", "title": "$NewDataSet" },
+      { "id": "channel", "title": "$Channel" }
+    ],
+    "copypaste": true,
+    "delete": true
+  },
+
+  "channel_folder_popup": {
+    "add": [
+      { "id": "channel_folder", "title": "$NewFolder" },
+      { "id": "channel_node_folder", "title": "New DataSet" },
+      { "id": "channel", "title": "$Channel" }
+    ],
+    "browse":{"variant":"subtree"},
+    "copypaste": true,
+    "delete": true
+  },
+
+  "default_channel_node_folder": {
+    "foldertype": "node",
+    "dataMode": "polling",
+    "dataSetRef": "WAGO61850ServerDevice/LLN0.DataSet01",
+    "rcbRef": "WAGO61850ServerDevice/LLN0.RP.ReportBlock0101",
+    "polldelay": 1000
+  },
+
+  "default_channel": {
+    "r": 1,
+    "title": "Channel 1",
+    "bit": 0,
+    "offset": 0,
+    "ref": "WAGO61850ServerDevice/GGIO1.Ind.stVal",
+    "syschan": 0,
+    "cdc": "SPS",
+    "fc": "MX",
+    "dataType": "dataObject"
+  }
+}

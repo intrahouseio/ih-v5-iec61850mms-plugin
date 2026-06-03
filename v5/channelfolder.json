@@ -1,0 +1,35 @@
+{
+  "grid": [
+    { "id": "p1", "xs": 6, "class": "main", "table": "devhard" },
+    { "id": "p2", "xs": 6, "class": "main", "table": "devhard", "hide":"data.p1.foldertype != 'node'" }
+  ],
+  "spacing": 4,
+
+  "p1": [
+    { "prop": "chan", "title": "$Name", "type": "input" },
+    { "prop": "foldertype", "title": "", "type": "text", "hide":"1==1" },
+    { "prop": "txt", "title": "$Comment", "type": "textarea" }
+  ],
+
+  "p2": [
+     {
+      "prop": "dataMode",
+      "title": "$dataMode",
+      "type": "droplist",
+      "data": [
+        {
+          "id": "polling",
+          "title": "Polling DataSet"
+        },
+        {
+          "id": "report",
+          "title": "Report DataSet"
+        }      
+      ],
+      "default": "polling"
+    },    
+    { "prop": "dataSetRef", "title": "$dataSetRef", "type": "input"},  
+    { "prop": "rcbRef", "title": "$rcbRef", "type": "input", "hide": "data.p2.dataMode.id != 'report'"},  
+    { "prop": "polldelay", "title": "$polldelay", "type": "input", "hide": "data.p2.dataMode.id != 'polling'" }
+  ]
+}

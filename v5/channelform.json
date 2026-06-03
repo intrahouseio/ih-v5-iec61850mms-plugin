@@ -1,0 +1,291 @@
+{
+  "grid": [
+    { "id": "p1", "xs": 4, "class": "main", "table": "devhard" },
+    { "id": "p2", "xs": 4, "class": "main", "table": "devhard" },
+    { "id": "p4", "xs": 4, "class": "main", "table": "devhard" },
+    { "id": "p3", "xs": 12, "class": "main", "table": "devhard" },
+    { "id": "p9", "xs": 6, "class": "main", "table": "onechannelrtTable" },
+    { "id": "ptest", "xs": 6, "class": "main", "table": "devhard", "hide": "!data.p4.w" },
+    {
+      "id": "ptest",
+      "xs": 12,
+      "class": "main",
+      "table": "devhard",
+      "hide": "!data.p3.w"
+    }
+  ],
+  "spacing": 4,
+  "p1": [
+    { "prop": "title", "title": "Name", "type": "input" },
+    { "prop": "devpropname", "title": "Свойство для привязки", "type": "input" }
+  ],
+  "p2": [
+    { "prop": "r", "title": "$Read", "type": "cb" },
+    {
+      "prop": "calc",
+      "title": "$Devhard_Calc",
+      "type": "input",
+      "hide": "!data.p2.r"
+    }
+  ],
+  "p4": [
+    { "prop": "w", "title": "$Write", "type": "cb" },
+    {
+      "prop": "calc_out",
+      "title": "$Devhard_Calc_Out",
+      "type": "input",
+      "hide": "!data.p4.w"
+    }
+  ],
+  "p3": [
+     {
+      "prop": "dataType",
+      "title": "Data Type",
+      "type": "droplist",
+      "data": [
+        {
+            "id": "dataObject",
+            "title": "Data Object[DO]"
+          },
+          {
+            "id": "dataAttribute",
+            "title": "Data Attribute[DA]"
+          }
+        ],
+        "default": "dataObject"
+    },
+    {
+      "prop": "fc",
+      "title": "FC(type)",
+      "type": "droplist",
+      "data": [
+        {
+            "id": "ST",
+            "title": "ST"
+          },
+          {
+            "id": "MX",
+            "title": "MX"
+          },
+          {
+            "id": "EX",
+            "title": "EX"
+          },
+          {
+            "id": "CF",
+            "title": "CF"
+          },
+          {
+            "id": "SG",
+            "title": "SG"
+          },
+          {
+            "id": "SE",
+            "title": "SE"
+          },
+          {
+            "id": "CO",
+            "title": "CO"
+          }
+        ],
+        "default": "ST",
+        "hide": "data.p3.dataType.id == 'dataObject'"
+    },
+    {
+      "prop": "cdc",
+      "title": "CDC(type)",
+      "type": "droplist",
+      "data": [
+          {
+            "id": "SPS",
+            "title": "SPS"
+          },
+          {
+            "id": "DPS",
+            "title": "DPS"
+          },
+          {
+            "id": "INS",
+            "title": "INS"
+          },
+          {
+            "id": "ENS",
+            "title": "ENS"
+          },
+          {
+            "id": "ACT",
+            "title": "ACT"
+          },
+          {
+            "id": "ACD",
+            "title": "ACD"
+          },
+          {
+            "id": "SEC",
+            "title": "SEC"
+          },
+          {
+            "id": "BCR",
+            "title": "BCR"
+          },
+          {
+            "id": "HST",
+            "title": "HST"
+          },
+          {
+            "id": "VSS",
+            "title": "VSS"
+          },
+          {
+            "id": "MV",
+            "title": "MV"
+          },
+          {
+            "id": "CMV",
+            "title": "CMV"
+          },
+          {
+            "id": "SAV",
+            "title": "SAV"
+          },
+          {
+            "id": "WYE",
+            "title": "WYE"
+          },
+          {
+            "id": "DEL",
+            "title": "DEL"
+          },
+          {
+            "id": "SEQ",
+            "title": "SEQ"
+          },
+          {
+            "id": "HMV",
+            "title": "HMV"
+          },
+          {
+            "id": "HWYE",
+            "title": "HWYE"
+          },
+          {
+            "id": "HDEL",
+            "title": "HDEL"
+          },
+          {
+            "id": "SPC",
+            "title": "SPC"
+          },
+          {
+            "id": "DPC",
+            "title": "DPC"
+          },
+          {
+            "id": "INC",
+            "title": "INC"
+          },
+          {
+            "id": "ENC",
+            "title": "ENC"
+          },
+          {
+            "id": "BSC",
+            "title": "BSC"
+          },
+          {
+            "id": "ISC",
+            "title": "ISC"
+          },
+          {
+            "id": "APC",
+            "title": "APC"
+          },
+          {
+            "id": "BAC",
+            "title": "BAC"
+          },
+          {
+            "id": "SPG",
+            "title": "SPG"
+          },
+          {
+            "id": "ING",
+            "title": "ING"
+          },
+          {
+            "id": "ENG",
+            "title": "ENG"
+          },
+          {
+            "id": "ORG",
+            "title": "ORG"
+          },
+          {
+            "id": "TSG",
+            "title": "TSG"
+          },
+          {
+            "id": "CUG",
+            "title": "CUG"
+          },
+          {
+            "id": "VSG",
+            "title": "VSG"
+          },
+          {
+            "id": "ASG",
+            "title": "ASG"
+          },
+          {
+            "id": "CURVE",
+            "title": "CURVE"
+          },
+          {
+            "id": "CSG",
+            "title": "CSG"
+          },
+          {
+            "id": "DPL",
+            "title": "DPL"
+          },
+          {
+            "id": "LPL",
+            "title": "LPL"
+          },
+          {
+            "id": "CSD",
+            "title": "CSD"
+          }
+      ],
+      "default": "SPS",
+      "hide": "data.p3.dataType.id == 'dataAttribute'"
+    },
+    { "prop": "ref", "title": "Reference", "type": "input" }
+  ],
+
+  "p9": [
+    {
+      "prop": "realtime_chan_str",
+      "title": "$realtime_chan_str",
+      "type": "text"
+    },
+    { "prop": "realtime_dev_str", "title": "$realtime_dev_str", "type": "text" }
+  ],
+
+  "ptest": [
+    {
+      "prop": "header_testwrite",
+      "title": "$header_testwrite",
+      "type": "header"
+    },
+    { "prop": "testValue", "title": "$testValue", "type": "input" },
+
+    {
+      "prop": "writeButton",
+      "title": "$doWrite",
+      "type": "button",
+      "command": "writetochannel",
+      "param": "write"
+    }
+  ]
+}

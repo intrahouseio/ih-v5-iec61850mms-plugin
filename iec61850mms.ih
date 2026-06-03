@@ -1,0 +1,6 @@
+{
+  "id":"iec61850mms",
+  "description":"Client for IEC 61850 mms",
+  "cross":true,
+	"version":"5.0.1"
+}
