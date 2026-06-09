@@ -40,23 +40,23 @@
   "p3": [
      {
       "prop": "dataType",
-      "title": "Data Type",
+      "title": "$dataType",
       "type": "droplist",
       "data": [
         {
             "id": "dataObject",
-            "title": "Data Object[DO]"
+            "title": "$dataObject"
           },
           {
             "id": "dataAttribute",
-            "title": "Data Attribute[DA]"
+            "title": "$dataAttribute"
           }
         ],
         "default": "dataObject"
     },
     {
       "prop": "fc",
-      "title": "FC(type)",
+      "title": "$fc",
       "type": "droplist",
       "data": [
         {
@@ -93,7 +93,7 @@
     },
     {
       "prop": "cdc",
-      "title": "CDC(type)",
+      "title": "$cdc",
       "type": "droplist",
       "data": [
           {
@@ -260,7 +260,7 @@
       "default": "SPS",
       "hide": "data.p3.dataType.id == 'dataAttribute'"
     },
-    { "prop": "ref", "title": "Reference", "type": "input" }
+    { "prop": "ref", "title": "$ref", "type": "input" }
   ],
 
   "p9": [

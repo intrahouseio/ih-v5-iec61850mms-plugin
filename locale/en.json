@@ -79,5 +79,16 @@
     "error" : "Error",
     "ChannelSys": "Connection status",
     "NewDataSet": "New Dataset",
-    "NewReport": "New Report"
+    "NewReport": "New Report",
+    "dataMode": "Data Mode",
+    "dataSetRef": "DataSet Reference",
+    "rcbRef": "Report Reference",
+    "dataType": "Data Type",
+    "dataObject" : "Data Object[DO]",
+    "dataAttribute": "Data Attribute[DA]",
+    "fc": "FC(type)",
+    "cdc": "CDC(type)",
+    "ref": "Reference",
+    "polling": "Polling",
+    "report": "Report"
 }

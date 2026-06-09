@@ -19,11 +19,11 @@
       "data": [
         {
           "id": "polling",
-          "title": "Polling DataSet"
+          "title": "$polling"
         },
         {
           "id": "report",
-          "title": "Report DataSet"
+          "title": "$report"
         }      
       ],
       "default": "polling"

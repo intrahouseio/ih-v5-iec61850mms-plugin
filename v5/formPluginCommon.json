@@ -12,7 +12,7 @@
   "p1": [
     { "prop": "id", "title": "ID", "type": "text" },
     { "prop": "name", "title": "$Name", "type": "input" },
-    { "prop": "ip", "title": "$ip", "type": "input","default": "192.168.0.125" },
+    { "prop": "ip", "title": "IP", "type": "input","default": "192.168.0.125" },
     { "prop": "port", "title": "$port", "type": "input", "default": "102" },
     { "prop": "use_redundancy", "title": "$use_redundancy", "type": "cb", "default": 0},
     { "prop": "host_redundancy", "title": "$host_redundancy", "type": "input", "default": "192.168.0.125", "hide": "!data.p1.use_redundancy" }
@@ -22,7 +22,7 @@
   "p3": [
     {
       "prop": "polldelay",
-      "title": "Poll delay",
+      "title": "$polldelay",
       "type": "number",
       "default": 1000
     },

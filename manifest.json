@@ -22,7 +22,7 @@
   "channel_folder_popup": {
     "add": [
       { "id": "channel_folder", "title": "$NewFolder" },
-      { "id": "channel_node_folder", "title": "New DataSet" },
+      { "id": "channel_node_folder", "title": "$NewNode" },
       { "id": "channel", "title": "$Channel" }
     ],
     "browse":{"variant":"subtree"},
