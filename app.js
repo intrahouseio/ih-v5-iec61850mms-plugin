@@ -16,8 +16,19 @@ module.exports = async function app(plugin) {
     let directChannelscached = false;
     let isShuttingDown = false;
     let reportEnabled = false; // Флаг включённого reporting
+    const MAX_QUEUE_SIZE = 50;
     const scanner = new Scanner(plugin);
 
+    setInterval(() => {
+        const mem = process.memoryUsage();
+        plugin.log(`MEM: rss=${Math.round(mem.rss / 1024 / 1024)}MB heapUsed=${Math.round(mem.heapUsed / 1024 / 1024)}MB queue=${readQueue.length} toWrite=${toWrite.length}`, 1);
+    }, 5000);
+
+    function scheduleProcessQueue(delay) {
+        clearTimeout(nextTimer);
+        nextTimer = setTimeout(processQueue, delay);
+        nextTimer.unref?.();  // опционально: не блокировать exit
+    }
     /**
  * Преобразует значение в формат, подходящий для отправки
  * - Числа и строки оставляем как есть
@@ -169,22 +180,19 @@ module.exports = async function app(plugin) {
     async function enableAllReports() {
         if (!client || !isConnected || !dataSetcached) return;
 
-        let enabledCount = 0;
         for (const [dataSetRef, ds] of dataSets.entries()) {
             if (ds.node.dataMode === "report" && ds.node.rcbRef) {
                 try {
-                    plugin.log(`Enabling reporting: RCB=${ds.node.rcbRef} → DS=${dataSetRef}`, 1);
                     await client.enableReporting(ds.node.rcbRef, dataSetRef);
-                    enabledCount++;
                 } catch (err) {
-                    plugin.log(`Failed to enable reporting for ${ds.node.rcbRef}: ${err.message}`, 2);
+                    // Игнорируем "already enabled"
+                    if (err.message && err.message.includes("already enabled")) {
+                        plugin.log(`Report already enabled: ${ds.node.rcbRef}`, 1);
+                    } else {
+                        plugin.log(`Failed to enable ${ds.node.rcbRef}: ${err.message}`, 2);
+                    }
                 }
             }
-        }
-
-        if (enabledCount > 0) {
-            reportEnabled = true;
-            plugin.log(`✅ Reporting enabled for ${enabledCount} RCB(s)`, 0);
         }
     }
 
@@ -192,7 +200,10 @@ module.exports = async function app(plugin) {
      * Заполнение очереди чтения (только polling)
      */
     function fillReadQueue() {
-        readQueue = [];
+        if (readQueue.length > MAX_QUEUE_SIZE) {
+            plugin.log(`readQueue overflow (${readQueue.length}), clearing`, 2);
+            readQueue = [];
+        }
 
         // 1. Прямые каналы - один запрос на все каналы
         if (directChannels.length > 0) {
@@ -229,6 +240,11 @@ module.exports = async function app(plugin) {
             return;
         }
 
+        if (!dataSetcached && !directChannelscached) {
+            scheduleProcessQueue(plugin.params.data.polldelay || 5000);
+            return;
+        }
+
         waiting = true;
 
         try {
@@ -246,7 +262,7 @@ module.exports = async function app(plugin) {
             if (readQueue.length === 0) {
                 // Нечего читать — следующий запуск через нормальный интервал
                 const delay = plugin.params.data.polldelay || 5000;
-                nextTimer = setTimeout(processQueue, delay);
+                scheduleProcessQueue(delay)
                 return;
             }
 
@@ -266,8 +282,11 @@ module.exports = async function app(plugin) {
                 nextTimer = setTimeout(processQueue, plugin.params.data.polldelay);
             } else {
                 // Когда очередь полностью обработана — используем polldelay
-                const delay = plugin.params.data.polldelay || 5000;
-                nextTimer = setTimeout(processQueue, delay);
+                const delay = readQueue.length > 0
+                    ? 200                          // между элементами очереди
+                    : (plugin.params.data.polldelay || 5000);
+
+                scheduleProcessQueue(delay)
             }
         }
     }
@@ -374,6 +393,9 @@ module.exports = async function app(plugin) {
         } catch (err) {
             plugin.log(`Read error for ${item.type}: ${err.message}`, 2);
 
+            // Добавляем счётчик попыток
+            item.retryCount = (item.retryCount || 0) + 1;
+
             const channelsList = item.type === "direct" ? item.channels : item.dataSet.channels;
             const errorResults = channelsList.map(ch => ({
                 id: ch.id,
@@ -381,9 +403,14 @@ module.exports = async function app(plugin) {
                 chstatus: 2,
                 ts,
             }));
-
             plugin.sendData(errorResults);
-            readQueue.push(item);
+
+            // Возвращаем в очередь только ограниченное число раз
+            if (item.retryCount < 3) {
+                readQueue.push(item);
+            } else {
+                plugin.log(`Dropping ${item.type} after ${item.retryCount} failures`, 2);
+            }
 
         } finally {
             // **НЕ ставим здесь таймер!** — это делает processQueue
@@ -430,6 +457,14 @@ module.exports = async function app(plugin) {
         }
     }
 
+
+    function hasPollingChannels() {
+        if (directChannels.length > 0) return true;
+        for (const ds of dataSets.values()) {
+            if (ds.node.dataMode === "polling" && ds.channels.length > 0) return true;
+        }
+        return false;
+    }
     /**
      * Подключение к серверу
      */
@@ -446,14 +481,12 @@ module.exports = async function app(plugin) {
         plugin.send({ type: "state", data: 10 });
 
         client = new MmsClient(async (event, data) => {
-            //plugin.log("Event " + event);
-            //plugin.log("Data " + util.inspect(data));
             if (event === "conn") {
                 if (data.event === "opened") {
                     isConnected = true;
                     plugin.log("Connection opened", 1);
                     const arrDataSets = [...dataSets.keys()];
-                    plugin.log("arrDataSets " + util.inspect(arrDataSets), 1);
+                    //plugin.log("arrDataSets " + util.inspect(arrDataSets), 1);
                     if (arrDataSets.length > 0) {
                         plugin.log(`Caching DataSet models: ${[...dataSets.keys()].join(", ")}`, 1);
                         await client.readDataSetModel(arrDataSets);
@@ -468,7 +501,11 @@ module.exports = async function app(plugin) {
                         directChannelscached = true;
                     }
 
-                    processQueue();
+                    if (hasPollingChannels()) {
+                        scheduleProcessQueue(0);
+                    } else {
+                        plugin.log("No polling channels, running in reports-only mode", 1);
+                    }
                 }
 
                 if (data.event === "closed") {
@@ -476,6 +513,8 @@ module.exports = async function app(plugin) {
                     isConnected = false;
                     isShuttingDown = true;
                     reportEnabled = false;
+                    readQueue = [];
+                    toWrite = [];
                     clearTimeout(nextTimer);
                     plugin.send({ type: "state", data: 10 });
                 }
@@ -485,9 +524,11 @@ module.exports = async function app(plugin) {
                     plugin.log("Connection restored", 1);
 
                     if (dataSetcached) {
-                        await enableAllReports(); // заново подписываемся после реконнекта
+                        enableAllReports().catch(err =>
+                            plugin.log(`enableAllReports failed: ${err.message}`, 2)
+                        );
                     }
-                    processQueue();
+                    scheduleProcessQueue(0);
                 }
 
                 if (data.event === "reconnecting") {
@@ -497,7 +538,7 @@ module.exports = async function app(plugin) {
 
             // Обработка отчётов
             if (event === "data" && data.event === "report") {
-                plugin.log("Report " + util.inspect(data));
+                //plugin.log("Report " + util.inspect(data));
                 processReport(data);
             }
 
@@ -542,31 +583,43 @@ module.exports = async function app(plugin) {
         const results = [];
         const ts = timestamp ? new Date(timestamp).getTime() : Date.now();
 
-        targetDataSet.channels.forEach((channel) => {
+        // Обрабатываем ТОЛЬКО те каналы, что пришли в отчёте.
+        // Остальные не трогаем — их последнее известное значение остаётся валидным.
+        for (const channel of targetDataSet.channels) {
             const valObj = values[channel.ref];
-            let value = null;
+            if (valObj === undefined) continue;   // канал не в этом отчёте — пропускаем
+
+            const value = extractValue(valObj, channel.ref, channel);
+
+            // Статус определяется только по q и наличию значения
             let chstatus = 0;
+            if (value === undefined || value === null) {
+                chstatus = 1;   // нет значения — но это редкость, обычно q уже покрывает
+            }
 
-            if (valObj) {
-                value = extractValue(valObj, channel.ref, channel);   // ← передаём dataRef!
+            // q: 0 = good, остальное — плохое качество
+            // (в IEC 61850 Quality bit 0-1 = validity: 00 good, 01 invalid, 10 reserved, 11 questionable)
+            const quality = valObj?.q ?? 0;
+            if (quality !== null && (quality & 0x03) !== 0) {
+                chstatus = 2;   // плохое качество
+            }
 
-                if (value === undefined || value === null) {
-                    chstatus = 1;
-                } else if (typeof value === "number" || typeof value === "boolean") {
-                    chstatus = 0;
-                }
-            } else {
-                chstatus = 2;
+            // timestamp: если в valObj есть t — используем его, иначе timestamp отчёта
+            let itemTs = ts;
+            if (valObj?.t) {
+                itemTs = typeof valObj.t === "number"
+                    ? valObj.t
+                    : new Date(valObj.t).getTime();
             }
 
             results.push({
                 id: channel.id,
                 value: prepareValue(value),
                 chstatus,
-                quality: valObj?.q,
-                ts
+                quality,
+                ts: itemTs,
             });
-        });
+        }
 
         if (results.length > 0) {
             plugin.sendData(results);
@@ -590,7 +643,7 @@ module.exports = async function app(plugin) {
         // Получаем узлы
         try {
             const nodes = await plugin.nodes.get();
-            plugin.log("nodes " + util.inspect(nodes))
+            //plugin.log("nodes " + util.inspect(nodes))
             nodes.forEach((node) => {
                 if (node.foldertype === "node" && node.dataSetRef) {
                     dataSets.set(node.dataSetRef, {
