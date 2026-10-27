@@ -50,7 +50,7 @@
     "dataType": "dataObject"
   },
    "ext": [{ "prop": "redundancy_state", "note": "Redundancy state", "vtype": "N" },
-            { "prop": "current_server", "note": "Current server", "vtype": "N" },
+            { "prop": "current_server", "note": "Current server", "vtype": "S" },
             { "prop": "connection_state", "note": "Connection state", "vtype": "S" }
         ]
 }

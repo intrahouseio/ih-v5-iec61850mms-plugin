@@ -236,6 +236,8 @@ module.exports = async function app(plugin) {
         //plugin.log(`Read queue filled: ${readQueue.length} items (polling only)`, 1);
     }
 
+
+
     /**
  * Основной цикл обработки очереди
  */
@@ -479,15 +481,30 @@ module.exports = async function app(plugin) {
             port,
             clientID = "mms_client_intra",
             restarttime = 5,
+            use_redundancy,
+            host_redundancy
         } = params;
 
         plugin.log(`Connecting to ${ip}:${port}...`, 0);
-        plugin.send({ type: "state", data: 10 });
-
+        //plugin.send({ type: "state", data: 10 });
+        process.send({
+            type: 'procinfo',
+            data: {
+                redundancy_state: false
+            }
+        });
         client = new MmsClient(async (event, data) => {
             if (event === "conn") {
+                //plugin.log("Conn " + util.inspect(data), 1);
                 if (data.event === "opened") {
                     isConnected = true;
+                    process.send({
+                        type: 'procinfo',
+                        data: {
+                            current_server: data.isPrimaryIP ? ip : host_redundancy,
+                            redundancy_state: !data.isPrimaryIP
+                        }
+                    });
                     plugin.log("Connection opened", 1);
                     const arrDataSets = [...dataSets.keys()];
                     //plugin.log("arrDataSets " + util.inspect(arrDataSets), 1);
@@ -521,7 +538,16 @@ module.exports = async function app(plugin) {
                     toWrite = [];
                     clearTimeout(nextTimer);
                     flushReports();                    // слить накопленные отчёты
-                    plugin.send({ type: "state", data: 10 });
+                    //plugin.send({ type: "state", data: 10 });
+                }
+
+                if (data.event === "stateChanged") {
+                    process.send({
+                        type: 'procinfo',
+                        data: {
+                            connection_state: data.state
+                        }
+                    });
                 }
 
                 if (data.event === "stateChanged" && data.isConnected) {
@@ -562,6 +588,7 @@ module.exports = async function app(plugin) {
                 port: parseInt(port) || 102,
                 clientID,
                 reconnectDelay: parseInt(restarttime),
+                ipReserve: use_redundancy ? host_redundancy : ''
             });
         } catch (err) {
             plugin.log(`Connection error: ${err.message}`, 2);
@@ -671,7 +698,7 @@ module.exports = async function app(plugin) {
 
         if (results.length > 0) {
             //plugin.sendData(results);
-            queueReportResults(results);   
+            queueReportResults(results);
             plugin.log(`Report processed for ${rcbRef}: ${results.length} values`, 1);
         }
     }
