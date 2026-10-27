@@ -26,6 +26,12 @@
       "type": "number",
       "default": 1000
     },
+     {
+      "prop": "buffertime",
+      "title": "Buffer time, ms",
+      "type": "number",
+      "default": 500
+    },
     {
       "prop": "restarttime",
       "title": "$Unit_Restarttime",

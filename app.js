@@ -16,13 +16,17 @@ module.exports = async function app(plugin) {
     let directChannelscached = false;
     let isShuttingDown = false;
     let reportEnabled = false; // Флаг включённого reporting
+    let pendingReports = [];        // буфер исходящих данных
+    let flushTimer = null;          // таймер отправки
+    const FLUSH_INTERVAL = plugin.params.data?.buffertime || 500;
+    const REPORT_BUFFER_LIMIT = 10000;    // защита от переполнения
     const MAX_QUEUE_SIZE = 50;
     const scanner = new Scanner(plugin);
 
-    setInterval(() => {
+    /*setInterval(() => {
         const mem = process.memoryUsage();
         plugin.log(`MEM: rss=${Math.round(mem.rss / 1024 / 1024)}MB heapUsed=${Math.round(mem.heapUsed / 1024 / 1024)}MB queue=${readQueue.length} toWrite=${toWrite.length}`, 1);
-    }, 5000);
+    }, 5000);*/
 
     function scheduleProcessQueue(delay) {
         clearTimeout(nextTimer);
@@ -472,12 +476,12 @@ module.exports = async function app(plugin) {
         const params = plugin.params.data;
         const {
             ip,
-            nodeport = 102,
-            clientID = "mms_client1",
+            port,
+            clientID = "mms_client_intra",
             restarttime = 5,
         } = params;
 
-        plugin.log(`Connecting to ${ip}:${nodeport}...`, 0);
+        plugin.log(`Connecting to ${ip}:${port}...`, 0);
         plugin.send({ type: "state", data: 10 });
 
         client = new MmsClient(async (event, data) => {
@@ -516,6 +520,7 @@ module.exports = async function app(plugin) {
                     readQueue = [];
                     toWrite = [];
                     clearTimeout(nextTimer);
+                    flushReports();                    // слить накопленные отчёты
                     plugin.send({ type: "state", data: 10 });
                 }
 
@@ -554,13 +559,56 @@ module.exports = async function app(plugin) {
         try {
             await client.connect({
                 ip,
-                port: parseInt(nodeport),
+                port: parseInt(port) || 102,
                 clientID,
                 reconnectDelay: parseInt(restarttime),
             });
         } catch (err) {
             plugin.log(`Connection error: ${err.message}`, 2);
             throw err;
+        }
+    }
+
+    /**
+ * Добавляет значения из отчёта в буфер и планирует отправку.
+ * ВСЕ значения сохраняются — без дедупликации (важен каждый факт).
+ */
+    function queueReportResults(results) {
+        if (!results || results.length === 0) return;
+
+        for (const r of results) {
+            pendingReports.push(r);
+        }
+
+        // Защита: если буфер разросся — сливаем немедленно
+        if (pendingReports.length >= REPORT_BUFFER_LIMIT) {
+            plugin.log(`pendingReports overflow (${pendingReports.length}), flushing now`, 2);
+            flushReports();
+            return;
+        }
+
+        if (!flushTimer && !isShuttingDown) {
+            flushTimer = setTimeout(flushReports, FLUSH_INTERVAL);
+            flushTimer.unref?.();
+        }
+    }
+
+    /**
+     * Отправляет накопленные отчёты одной пачкой. Порядок сохраняется.
+     */
+    function flushReports() {
+        flushTimer = null;
+
+        if (pendingReports.length === 0) return;
+
+        const batch = pendingReports;
+        pendingReports = [];
+
+        try {
+            plugin.sendData(batch);
+            plugin.log(`Sent report batch of ${batch.length} values`, 1);
+        } catch (err) {
+            plugin.log(`sendData (report batch) error: ${err.message}`, 2);
         }
     }
 
@@ -622,7 +670,8 @@ module.exports = async function app(plugin) {
         }
 
         if (results.length > 0) {
-            plugin.sendData(results);
+            //plugin.sendData(results);
+            queueReportResults(results);   
             plugin.log(`Report processed for ${rcbRef}: ${results.length} values`, 1);
         }
     }
@@ -800,6 +849,8 @@ module.exports = async function app(plugin) {
                 }
             }
         }
+
+        flushReports(); // слить остаток перед закрытием клиента
 
         if (client) {
             try {
